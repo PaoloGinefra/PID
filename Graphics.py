@@ -1,14 +1,15 @@
-from numpy.lib.function_base import angle
 import pygame
 import numpy as np
 from pygame.version import ver
 from pygame import gfxdraw
-from Simulation import Simulation, Circle, Stick
+from Simulation import Simulation, Circle, Stick, Sensor
 
 class Visual:
     BgColour = (0, 0, 0)
     CircleColour = (68, 135, 242)
     StickColour = (255, 255, 255)
+    SensorColour = (50, 168, 82)
+
 
     def __init__(self, width, height):
         self.width = width
@@ -19,8 +20,8 @@ class Visual:
         self.screen = pygame.display.set_mode((width, height))
         pass
 
-    def DrawCircle(self, c : Circle):
-        gfxdraw.circle(self.screen, int(c.position[0]), int(c.position[1]), c.radius, Visual.CircleColour)
+    def DrawCircle(self, c : Circle, color = CircleColour):
+        gfxdraw.circle(self.screen, int(c.position[0]), int(c.position[1]), c.radius, color)
 
     def DrawStick(self, s : Stick):
         vert = []
@@ -37,11 +38,14 @@ class Visual:
         self.screen.fill(Visual.BgColour)
 
         self.DrawCircle(simulation.circle)
-        self.DrawStick(simulation.stick)        
+        self.DrawStick(simulation.stick)
 
+    def DrawSensor(self, sensor : Sensor):
+        self.DrawCircle(sensor.circle, Visual.SensorColour)
+
+    def Draw(self):
         pygame.display.flip()
-
-
+        
     def HandleInput(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
