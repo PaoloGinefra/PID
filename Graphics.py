@@ -10,6 +10,8 @@ class Visual:
     StickColour = (255, 255, 255)
     SensorColour = (50, 168, 82)
 
+    Random = False
+
 
     def __init__(self, width, height):
         self.width = width
@@ -50,3 +52,6 @@ class Visual:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.isActive = False
+            if event.type == pygame.KEYDOWN:
+                print('RANDOMIZE')
+                Visual.Random = not Visual.Random
