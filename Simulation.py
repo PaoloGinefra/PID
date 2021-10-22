@@ -63,10 +63,12 @@ class Simulation:
         self.circle = circle
         self.dt = dt
         self.t = 0
+        self.randomize = False
         pass
 
     def Reset(self):
-        self.RandomizeCircle()
+        if self.randomize:
+            self.RandomizeCircle()
         self.circle.position = self.circle.basePosition
         self.circle.Stop()
 

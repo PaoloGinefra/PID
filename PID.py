@@ -21,18 +21,23 @@ class Simulator:
         self.sensor = sensor
         pass
 
-    def Simulate(self, controller : Controller, n_steps : int, visualizer : Visual, showEvery = 1):
+    def Lerp(a : float, b : float, factor : float):
+        return factor * a + (1 - factor) * b
+
+    def Simulate(self, controller : Controller, target_distance :float,  n_steps : int, visualizer : Visual, showEvery = 1, interpolationFactor = 1, randomize = False):
+        self.simulation.randomize = randomize
         self.simulation.Reset()
 
         error, error_previous, error_integtal, error_integral_abs, error_derivative = 0, 0, 0, 0, 0
+        u = self.simulation.stick.theta
 
         for frame_n in range(n_steps):
-            error = self.sensor.Evaluate()
+            error = self.sensor.Evaluate() - target_distance
             error_integtal += error * self.simulation.dt
             error_integral_abs += np.abs(error * self.simulation.dt)
             error_derivative = (error - error_previous) / self.simulation.dt
 
-            u = -controller.u(error, error_integtal, error_derivative)
+            u = Simulator.Lerp(-controller.u(error, error_integtal, error_derivative), u, interpolationFactor)
             self.simulation.stick.SetAngle(u)
 
             self.simulation.Step()
@@ -61,11 +66,11 @@ cir = Circle(25, np.array([500, 100]))
 
 sim = Simulation(st, cir, dt = 0.001)
 
-sens = Sensor(sim, 0.5, radius = 10)
+sens = Sensor(sim, position_coeff = 0, radius = 10)
 
-pid = PID_controller(0.01, 0.05, 0)
+pid = PID_controller(P = 0.5, I = 0.0001, D = 0)
 
 simulator = Simulator(sim, sens)
 
 for _ in range(10):
-    print(simulator.Simulate(pid, 100000, vis, 10))
+    print(simulator.Simulate(pid, target_distance = 0, n_steps = 100000, visualizer = vis, showEvery = 10, interpolationFactor = 0.01))
