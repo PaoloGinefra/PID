@@ -23,13 +23,14 @@ class Population:
             self.fitnesses[p] = 0
 
     def Evaluate(self, sim : Simulator):
-        #print("Starting evaluation:")
         for i, p in enumerate(self.population):
-            #print(f"{(i + 1) / self.size * 100} %")
             self.fitnesses[p] = sim.Simulate(p)
 
-        self.best = self.population[np.argmin(list(self.fitnesses.values()))]
-        print(np.min(list(self.fitnesses.values())))
+        fit = list(self.fitnesses.values())
+        self.best = self.population[np.argmin(fit)]
+        self.best_performance = np.min(fit)
+        self.mean_performance = np.mean(fit)
+        self.worst_performance = np.max(fit)
 
     def Kill(self):
         S = np.sum(list(self.fitnesses.values()))
@@ -62,7 +63,6 @@ class Population:
         pass
 
     def ShowBest(self, sim : Simulator):
-        self.best.Print()
         sim.showEvery = 1
         sim.Simulate(self.best)
         sim.showEvery = 100000000000000000
@@ -70,22 +70,26 @@ class Population:
 
 vis = Visual(800, 800)
 
-st = Stick(np.array([400, 600]), 600, 20, 0, 30)
+st = Stick(np.array([400, 600]), 600, 20, 0, maxTheta = 10)
 cir = Circle(25, np.array([500, 400]))
-
+ 
 sim = Simulation(st, cir, dt = 0.01)
 
 sens = Sensor(sim, position_coeff = 0.2, radius = 10)
 
-simulator = Simulator(sim, sens, target_distance = 0, n_steps = 10000, visualizer = vis, showEvery = 10000, interpolationFactor = 0.001, randomize = False)
+simulator = Simulator(sim, sens, target_distance = 0, n_steps = 10000, visualizer = vis, showEvery = 10000, interpolationFactor = 0.005, randomize = False)
 
 pop = Population(50)
 pop.Populate()
 gen = 0
 while 1:
-    print(gen)
+    print(f'\nGeneration: {gen}')
     pop.Evaluate(simulator)
+    print(f'Best:{pop.best_performance}, Mean:{pop.mean_performance}, Worst:{pop.worst_performance}')
+    print('The best one is: ', end='')
+    pop.best.Print()
     pop.ShowBest(simulator)
+
     pop.Kill()
     pop.Reproduce()
 

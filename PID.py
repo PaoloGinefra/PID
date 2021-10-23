@@ -47,7 +47,7 @@ class Simulator:
         ang = self.simulation.stick.theta
 
         for frame_n in range(self.n_steps):
-            error = self.sensor.Evaluate() - self.target_distance
+            error = self.sensor.Evaluate() - self.target_distance - self.simulation.circle.radius - self.simulation.stick.thickness / 2
             error_integtal += error * self.simulation.dt
             error_integral_abs += np.abs(error * self.simulation.dt)
             error_derivative = (error - error_previous) / self.simulation.dt
@@ -65,9 +65,9 @@ class Simulator:
                 if not self.visualizer.isActive: return
 
             if(self.simulation.isInFrame()):
-                return error_integral_abs + 800 * (self.n_steps - frame_n)
+                return (error_integral_abs + 800 * (self.n_steps - frame_n)) / self.n_steps
 
-        return error_integral_abs
+        return error_integral_abs / self.n_steps
 
         
 
