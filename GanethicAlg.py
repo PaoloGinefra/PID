@@ -1,97 +1,115 @@
 from numpy.random.mtrand import rand
-from PID import *
 import numpy as np
 import random
 from Graphics import Visual
 from Simulation import Simulation, Circle, Stick, Sensor
-from PID import PID_controller
-import pygame
+from PID_ import PID_controller, Simulator
 
 class Population:
-    def RandomPID():
-        return PID_controller(P = random.random() * 0.01, D = random.random()*0.01, I = random.random()*0.01)
-
     def __init__(self, size : int) -> None:
+        #initialize Parameters
         self.size = size
-        self.population = []
+        self.population = {}
         self.fitnesses = {}
         pass
 
     def Populate(self):
-        self.population = [Population.RandomPID() for _ in range(self.size)]
-        for p in self.population:
-            self.fitnesses[p] = 0
+        #Create new population
+        for id in range(self.size):
+            self.population[id] = PID_controller.Random(id = id)
+
+        #initialize Fitnesses
+        for p in self.population.values():
+            self.fitnesses[p.id] = 0
 
     def Evaluate(self, sim : Simulator):
-        for i, p in enumerate(self.population):
-            self.fitnesses[p] = sim.Simulate(p)
+        #Evaluate all the individual
+        for p in self.population.values():
+            self.fitnesses[p.id] = sim.Simulate(p)
 
-        fit = list(self.fitnesses.values())
-        self.best = self.population[np.argmin(fit)]
-        self.best_performance = np.min(fit)
-        self.mean_performance = np.mean(fit)
-        self.worst_performance = np.max(fit)
+    def AnalyzeFitnesses(self):
+        #statistical analisis of the population
+        fitnesses = list(self.fitnesses.values())
+        keys = list(self.fitnesses.keys())
+        self.best = self.population[keys[np.argmin(fitnesses)]]
+        self.best_performance = np.min(fitnesses)
+        self.mean_performance = np.mean(fitnesses)
+        self.worst_performance = np.max(fitnesses)
 
     def Kill(self):
-        S = np.sum(list(self.fitnesses.values()))
-        for _ in range(int(self.size / 2)):
-            p = random.choices(self.population, weights=list(self.fitnesses.values()), k = 1)[0]
-            
-            del self.fitnesses[p]
-            self.population.remove(p)
+        #Kill half of the population 
+        for _ in range(self.size // 2):
+            p = random.choices(list(self.fitnesses.keys()), weights=list(self.fitnesses.values()), k = 1)[0]
+            self.fitnesses.pop(p)
+            self.population.pop(p)
     
-    def Mix(a : PID_controller, b : PID_controller, randomScale : float):
-        P = Simulator.Lerp(a.P, b.P, random.random()) + random.random() * a.P * randomScale * random.choice([-1, 1])
-        D = Simulator.Lerp(a.D, b.D, random.random()) + random.random() * b.D * randomScale * random.choice([-1, 1])
-        I = Simulator.Lerp(a.I, b.I, random.random()) + random.random() * b.I * randomScale * random.choice([-1, 1])
-        return PID_controller(P, I, D)
+    def Mix(self, a : PID_controller, b : PID_controller, randomScale : float, id : int):
+        #Mixing 2 controllers as a random linear combination + random fluctuation
+        t =  self.fitnesses[a.id] / (self.fitnesses[a.id] + self.fitnesses[b.id])
 
-    def Reproduce(self):
-        pop = [self.population[i] for i in range(len(self.population))]
+        P = Simulator.Lerp(a.P, b.P, t)
+        P *=  1 + random.choice([-1, 1]) * random.random() * randomScale
+
+        D = Simulator.Lerp(a.D, b.D, t) + random.random() * randomScale * random.choice([-1, 1])
+        D *=  1 + random.random() * randomScale * random.choice([-1, 1])
+
+        I = Simulator.Lerp(a.I, b.I, t) + random.random() * randomScale * random.choice([-1, 1])
+        I *=  1 + random.random() * randomScale * random.choice([-1, 1])
+
+        return PID_controller(P, I, D, id)
+
+    def Reproduce(self, gen):
+        #Create a copy of the population
+        pop = self.population.copy()
+
+        #make the population number even
         if(len(pop) % 2 != 0):
-            pop.append(pop[-1])
+            pop[-1] = PID_controller.Random(scale=0.001, id = -1)
 
-        for _ in range(int(len(self.population))):
-            a = random.randint(0, len(pop)-1)
-            A = pop[a]
-            del pop[a]
-
-            b = random.randint(0, len(pop)-1)
-            B = pop[b]
-
-            self.population.append(Population.Mix(A, B, 1))
+        #Reproducing
+        keys = list(self.population.keys())
+        Len = len(keys)
+        for p in range(Len):
+            B = pop[random.choice(list(pop.keys()))]
+            id = p + self.size * (gen + 1)
+            self.population[id] = self.Mix(self.population[keys[p]], B, randomScale = 0.005, id = id)
         pass
 
     def ShowBest(self, sim : Simulator):
+        temp = sim.showEvery
         sim.showEvery = 1
         sim.Simulate(self.best)
-        sim.showEvery = 100000000000000000
+        sim.showEvery = temp
 
 
 vis = Visual(800, 800)
 
-st = Stick(np.array([400, 600]), 600, 20, 0, maxTheta = 10)
+st = Stick(np.array([400, 600]), 600, 20, 0, maxTheta = 10, friction_coeff = 1)
 cir = Circle(25, np.array([500, 400]))
  
 sim = Simulation(st, cir, dt = 0.01)
 
 sens = Sensor(sim, position_coeff = 0.2, radius = 10)
 
-simulator = Simulator(sim, sens, target_distance = 0, n_steps = 10000, visualizer = vis, showEvery = 10000, interpolationFactor = 0.005, randomize = False)
+simulator = Simulator(sim, sens, target_distance = 0, n_steps = 10000, visualizer = vis, showEvery = 10000, interpolationFactor = 0.2, randomize = False)
 
-pop = Population(50)
+pop = Population(8)
 pop.Populate()
 gen = 0
-while 1:
+pop.Evaluate(simulator)
+
+while vis.isActive:
     print(f'\nGeneration: {gen}')
-    pop.Evaluate(simulator)
+    pop.AnalyzeFitnesses()
     print(f'Best:{pop.best_performance}, Mean:{pop.mean_performance}, Worst:{pop.worst_performance}')
     print('The best one is: ', end='')
     pop.best.Print()
     pop.ShowBest(simulator)
 
     pop.Kill()
-    pop.Reproduce()
+    pop.Reproduce(gen)
+
+    pop.Evaluate(simulator)
 
     simulator.randomize = Visual.Random
 
