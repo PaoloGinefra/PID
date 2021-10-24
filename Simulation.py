@@ -8,7 +8,7 @@ from numpy.random.mtrand import rand
 
 
 class Circle:
-    def __init__(self, radius: float, initial_position: np.array, dP = 100, dR = 10) -> None:
+    def __init__(self, radius: float, initial_position: np.array, dP = 290, dR = 10) -> None:
         #Initialize Position and Radius
         self.position = initial_position
         self.radius = radius

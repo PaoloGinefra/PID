@@ -44,17 +44,23 @@ class Population:
             self.population.pop(p)
     
     def Mix(self, a : PID_controller, b : PID_controller, randomScale : float, id : int):
+        def randomCoeff():
+            return 1 + random.choice([-1, 1]) * random.random() * randomScale
+
         #Mixing 2 controllers as a random linear combination + random fluctuation
         t =  self.fitnesses[a.id] / (self.fitnesses[a.id] + self.fitnesses[b.id])
 
-        P = Simulator.Lerp(a.P, b.P, t)
-        P *=  1 + random.choice([-1, 1]) * random.random() * randomScale
+        #P = Simulator.Lerp(a.P, b.P, t) 
+        P = random.choice([a.P, b.P])
+        P *=  randomCoeff()
 
-        D = Simulator.Lerp(a.D, b.D, t) + random.random() * randomScale * random.choice([-1, 1])
-        D *=  1 + random.random() * randomScale * random.choice([-1, 1])
+        #D = Simulator.Lerp(a.D, b.D, t) 
+        D = random.choice([a.P, b.P])
+        D *=  randomCoeff()
 
-        I = Simulator.Lerp(a.I, b.I, t) + random.random() * randomScale * random.choice([-1, 1])
-        I *=  1 + random.random() * randomScale * random.choice([-1, 1])
+        #I = Simulator.Lerp(a.I, b.I, t)
+        I = random.choice([a.I, b.I])
+        I *=  randomCoeff()
 
         return PID_controller(P, I, D, id)
 
@@ -64,7 +70,7 @@ class Population:
 
         #make the population number even
         if(len(pop) % 2 != 0):
-            pop[-1] = PID_controller.Random(scale=0.001, id = -1)
+            pop[-1] = PID_controller.Random(scale=100, id = -1)
 
         #Reproducing
         keys = list(self.population.keys())
@@ -72,7 +78,7 @@ class Population:
         for p in range(Len):
             B = pop[random.choice(list(pop.keys()))]
             id = p + self.size * (gen + 1)
-            self.population[id] = self.Mix(self.population[keys[p]], B, randomScale = 0.005, id = id)
+            self.population[id] = self.Mix(self.population[keys[p]], B, randomScale = 0.5, id = id)
         pass
 
     def ShowBest(self, sim : Simulator):
@@ -91,9 +97,9 @@ sim = Simulation(st, cir, dt = 0.01)
 
 sens = Sensor(sim, position_coeff = 0.2, radius = 10)
 
-simulator = Simulator(sim, sens, target_distance = 0, n_steps = 10000, visualizer = vis, showEvery = 10000, interpolationFactor = 0.2, randomize = False)
+simulator = Simulator(sim, sens, target_distance = 0, n_steps = 5000, visualizer = vis, showEvery = 10000, interpolationFactor = 0.2, randomize = False)
 
-pop = Population(8)
+pop = Population(40)
 pop.Populate()
 gen = 0
 pop.Evaluate(simulator)

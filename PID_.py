@@ -10,7 +10,7 @@ class Controller():
 
 class PID_controller(Controller):
     def Random(scale = 0.01, id = 0):
-        return PID_controller(P = random.random() * scale, D = random.random()*0, I = random.random()*0.01, id = id)
+        return PID_controller(P = random.random() * scale, D = random.random()*scale, I = random.random()*scale, id = id)
 
     def __init__(self, P : float, I : float, D : float, id : int) -> None:
         #Initialize parameters
