@@ -6,11 +6,12 @@ from Simulation import Simulation, Circle, Stick, Sensor
 from PID_ import PID_controller, Simulator
 
 class Population:
-    def __init__(self, size : int) -> None:
+    def __init__(self, size : int, selectionN = 2) -> None:
         #initialize Parameters
         self.size = size
         self.population = {}
         self.fitnesses = {}
+        self.selectionNumber = selectionN
         pass
 
     def Populate(self):
@@ -38,7 +39,7 @@ class Population:
 
     def Kill(self):
         #Kill half of the population 
-        for _ in range(self.size // 2):
+        for _ in range(len(self.population) * (self.selectionNumber - 1) // self.selectionNumber):
             p = random.choices(list(self.fitnesses.keys()), weights=list(self.fitnesses.values()), k = 1)[0]
             self.fitnesses.pop(p)
             self.population.pop(p)
@@ -68,17 +69,14 @@ class Population:
         #Create a copy of the population
         pop = self.population.copy()
 
-        #make the population number even
-        if(len(pop) % 2 != 0):
-            pop[-1] = PID_controller.Random(scale=100, id = -1)
-
         #Reproducing
         keys = list(self.population.keys())
         Len = len(keys)
         for p in range(Len):
-            B = pop[random.choice(list(pop.keys()))]
-            id = p + self.size * (gen + 1)
-            self.population[id] = self.Mix(self.population[keys[p]], B, randomScale = 0.5, id = id)
+            for i in range(self.selectionNumber - 1):
+                B = pop[random.choice(list(pop.keys()))]
+                id = p + self.selectionNumber * Len + (self.selectionNumber - 1) * Len * gen + i * Len
+                self.population[id] = self.Mix(self.population[keys[p]], B, randomScale = 0.5, id = id)
         pass
 
     def ShowBest(self, sim : Simulator):
@@ -99,13 +97,14 @@ sens = Sensor(sim, position_coeff = 0.2, radius = 10)
 
 simulator = Simulator(sim, sens, target_distance = 0, n_steps = 5000, visualizer = vis, showEvery = 10000, interpolationFactor = 0.2, randomize = False)
 
-pop = Population(40)
+pop = Population(40, selectionN = 5)
 pop.Populate()
 gen = 0
 pop.Evaluate(simulator)
 
 while vis.isActive:
     print(f'\nGeneration: {gen}')
+    print(len(pop.population))
     pop.AnalyzeFitnesses()
     print(f'Best:{pop.best_performance}, Mean:{pop.mean_performance}, Worst:{pop.worst_performance}')
     print('The best one is: ', end='')
