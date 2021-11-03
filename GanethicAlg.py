@@ -76,7 +76,7 @@ class Population:
             for i in range(self.selectionNumber - 1):
                 B = pop[random.choice(list(pop.keys()))]
                 id = p + self.selectionNumber * Len + (self.selectionNumber - 1) * Len * gen + i * Len
-                self.population[id] = self.Mix(self.population[keys[p]], B, randomScale = 0.5, id = id)
+                self.population[id] = self.Mix(self.population[keys[p]], B, randomScale = 1, id = id)
         pass
 
     def ShowBest(self, sim : Simulator):
@@ -97,7 +97,7 @@ sens = Sensor(sim, position_coeff = 0.2, radius = 10)
 
 simulator = Simulator(sim, sens, target_distance = 0, n_steps = 5000, visualizer = vis, showEvery = 10000, interpolationFactor = 0.2, randomize = False)
 
-pop = Population(40, selectionN = 5)
+pop = Population(40, selectionN = 2)
 pop.Populate()
 gen = 0
 pop.Evaluate(simulator)
